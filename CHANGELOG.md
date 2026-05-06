@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.1] - 2026-05-06
+
+### Changed
+
+- `install.sh` and `uninstall.sh` now automatically inject and remove `Read`/`Write` permissions in the relevant `settings.json` (`~/.claude/settings.json` for global installs, `.claude/settings.json` for local) — eliminates permission prompts when reading config files or writing `CRITIQUE.md`
+- Removed the "5 most recently modified files" step from context gathering in `/autocritic` — it added noise without improving critique quality
+
+### Fixed
+
+- Permission prompts triggered on every run when reading `whetstone.config` or writing `CRITIQUE.md`
+
+---
+
 ## [0.1.0] - 2026-05-06
 
 First public release.
