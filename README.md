@@ -41,9 +41,33 @@ curl -o ~/.claude/commands/autocritic.md \
 **Or use the install script:**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ValentinFigue/whetstone/main/install.sh | bash
-# Global install:
-curl -fsSL https://raw.githubusercontent.com/ValentinFigue/whetstone/main/install.sh | bash -s global
+# Local (this project only)
+bash install.sh
+
+# Global (all projects)
+bash install.sh global
+
+# Local + inject auto-trigger into CLAUDE.md
+bash install.sh --claude-md
+
+# Global + inject auto-trigger into ~/.claude/CLAUDE.md
+bash install.sh global --claude-md
+```
+
+The `--claude-md` flag appends the planning discipline section to your `CLAUDE.md`, wrapped in markers so it can be cleanly removed later.
+
+**To uninstall:**
+
+```bash
+# Remove command file (local)
+bash uninstall.sh
+
+# Remove command file (global)
+bash uninstall.sh global
+
+# Remove command + CLAUDE.md section
+bash uninstall.sh --claude-md
+bash uninstall.sh global --claude-md
 ```
 
 Restart Claude Code. The `/autocritic` command is immediately available.
