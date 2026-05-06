@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.3] - 2026-05-06
+
+### Changed
+
+- `/autocritic` now writes `CRITIQUE.md` to `.claude/plans/CRITIQUE.md` instead of the project root. Resolution order: local `.claude/plans/` → global `~/.claude/plans/` → create `.claude/plans/` locally. This keeps critique output out of the project root and co-located with plan files. **Breaking:** existing `CRITIQUE.md` at the project root will no longer be updated; move it to `.claude/plans/CRITIQUE.md` to preserve your history.
+
+---
+
 ## [0.1.2] - 2026-05-06
 
 ### Changed

@@ -185,10 +185,14 @@ Do not revise the plan. Surface findings only. The user will decide what to act 
 
 ## Persist output
 
-After printing the report, write the full table to `CRITIQUE.md` in the project root.
+After printing the report, determine the target `.claude/plans/` directory:
+- If `.claude/plans/` exists in the project root → write to `.claude/plans/CRITIQUE.md`
+- Else if `~/.claude/plans/` exists → write to `~/.claude/plans/CRITIQUE.md`
+- Otherwise create `.claude/plans/` in the project root and write there
+
 Prepend a header: `# Critique — <source file name> — <current date>`
 
-If `CRITIQUE.md` already exists, append rather than overwrite, so the file accumulates a history of critiques over time.
+If `CRITIQUE.md` already exists at the resolved path, append rather than overwrite, so the file accumulates a history of critiques over time.
 
 ---
 
