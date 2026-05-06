@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.2] - 2026-05-06
+
+### Changed
+
+- `templates/CLAUDE.md` now instructs Claude to re-run `/autocritic` after every user-requested plan modification, not just after the initial plan presentation
+
+---
+
 ## [0.1.1] - 2026-05-06
 
 ### Changed
