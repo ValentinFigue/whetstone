@@ -13,11 +13,41 @@ done
 
 if [ "$MODE" = "global" ]; then
   COMMANDS_DIR="$HOME/.claude/commands"
+  SETTINGS_DIR="$HOME/.claude"
   CLAUDE_FILE="$HOME/.claude/CLAUDE.md"
 else
   COMMANDS_DIR=".claude/commands"
+  SETTINGS_DIR=".claude"
   CLAUDE_FILE="./CLAUDE.md"
 fi
+
+_json_add_perms() {
+  local file="$1"
+  if command -v python3 &>/dev/null; then
+    python3 - "$file" <<'PYEOF'
+import json, sys
+f = sys.argv[1]
+with open(f) as fh: s = json.load(fh)
+allow = s.setdefault("permissions", {}).setdefault("allow", [])
+for p in ["Read", "Write"]:
+    if p not in allow: allow.append(p)
+print(json.dumps(s, indent=2))
+PYEOF
+  elif command -v node &>/dev/null; then
+    node - "$file" <<'JSEOF'
+const f = process.argv[2];
+const s = JSON.parse(require("fs").readFileSync(f, "utf8"));
+s.permissions = s.permissions || {};
+s.permissions.allow = s.permissions.allow || [];
+for (const p of ["Read", "Write"]) { if (!s.permissions.allow.includes(p)) s.permissions.allow.push(p); }
+process.stdout.write(JSON.stringify(s, null, 2) + "\n");
+JSEOF
+  elif command -v jq &>/dev/null; then
+    jq '.permissions.allow |= (. + ["Read","Write"] | unique)' "$file"
+  else
+    return 1
+  fi
+}
 
 # Install command file
 mkdir -p "$COMMANDS_DIR"
@@ -25,6 +55,19 @@ curl -fsSL \
   -o "$COMMANDS_DIR/autocritic.md" \
   "https://raw.githubusercontent.com/ValentinFigue/whetstone/main/.claude/commands/autocritic.md"
 echo "✓ /autocritic installed to $COMMANDS_DIR"
+
+# Inject Read + Write permissions into settings.json
+SETTINGS_FILE="$SETTINGS_DIR/settings.json"
+mkdir -p "$SETTINGS_DIR"
+if [ ! -f "$SETTINGS_FILE" ]; then
+  printf '{\n  "permissions": {\n    "allow": ["Read", "Write"]\n  }\n}\n' > "$SETTINGS_FILE"
+  echo "✓ Permissions (Read, Write) added to $SETTINGS_FILE"
+elif _json_add_perms "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"; then
+  echo "✓ Permissions (Read, Write) added to $SETTINGS_FILE"
+else
+  echo "  Could not update $SETTINGS_FILE automatically (install python3, node, or jq)."
+  echo "  Add \"Read\" and \"Write\" to permissions.allow manually."
+fi
 
 # Optionally inject planning discipline into CLAUDE.md
 if [ "$WITH_CLAUDE_MD" = true ]; then

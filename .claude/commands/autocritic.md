@@ -42,7 +42,6 @@ Before critiquing, collect available project context. Read the following if they
 1. `package.json` or `pyproject.toml` — dependency landscape and versions
 2. `ARCHITECTURE.md` or any `.md` files in an `ADR/` directory — existing architectural decisions
 3. `whetstone.config.md` — project-specific critic instructions (prose; e.g. "this project uses event sourcing — flag anything that bypasses the event log")
-4. The 5 most recently modified files (`git diff --name-only HEAD~5 HEAD` or equivalent) — what's currently in flight
 
 Use this context to ground findings: flag dependency version conflicts, note contradictions with existing ADRs, apply any project-specific instructions from `whetstone.config.md`.
 

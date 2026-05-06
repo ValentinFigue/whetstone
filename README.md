@@ -30,7 +30,7 @@ Each finding is rated by severity. No revisions, no rewrites — just a clear ta
 curl -fsSL https://raw.githubusercontent.com/ValentinFigue/whetstone/main/install.sh | bash -s global
 ```
 
-This installs the `/autocritic` command and the `whetstone` CLI to `~/.local/bin/`.
+This installs the `/autocritic` command, the `whetstone` CLI to `~/.local/bin/`, and configures the required `Read`/`Write` permissions in `~/.claude/settings.json` so the critic runs without permission prompts.
 
 **With auto-trigger** — also injects the planning discipline into `~/.claude/CLAUDE.md`:
 
@@ -58,12 +58,14 @@ curl -fsSL -o .claude/commands/autocritic.md \
   https://raw.githubusercontent.com/ValentinFigue/whetstone/main/.claude/commands/autocritic.md
 ```
 
+If installing manually, also add `"Read"` and `"Write"` to `permissions.allow` in the relevant `settings.json` (`~/.claude/settings.json` for global, `.claude/settings.json` for local) to avoid permission prompts when the critic reads config files or writes `CRITIQUE.md`.
+
 Restart Claude Code. The `/autocritic` command is immediately available.
 
 **To uninstall:**
 
 ```bash
-# Global (removes CLI binary, command file, and optionally CLAUDE.md section)
+# Global (removes CLI binary, command file, permissions, and optionally CLAUDE.md section)
 curl -fsSL https://raw.githubusercontent.com/ValentinFigue/whetstone/main/uninstall.sh | bash -s global --claude-md
 
 # Local
