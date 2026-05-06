@@ -21,6 +21,18 @@ fi
 
 REMOVED=0
 
+# Remove whetstone CLI binary (global only)
+if [ "$MODE" = "global" ]; then
+  CLI="$HOME/.local/bin/whetstone"
+  if [ -f "$CLI" ]; then
+    rm "$CLI"
+    echo "✓ Removed $CLI"
+    REMOVED=$((REMOVED + 1))
+  else
+    echo "  $CLI not found — skipped"
+  fi
+fi
+
 # Remove command file
 COMMAND_FILE="$COMMANDS_DIR/autocritic.md"
 if [ -f "$COMMAND_FILE" ]; then

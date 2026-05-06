@@ -1,19 +1,37 @@
 # Auto-critic
 
-## Critic selection
+## Configuration
 
-If `$ARGUMENTS` is provided, parse it as a comma-separated list of critic names and run only those.
+Resolve settings in three steps, lowest to highest priority:
 
-Valid names:
-- `impl` — Implementation (default)
-- `arch` — Architecture (default)
-- `risk` — Risk (default)
-- `testing` — Testing strategy (optional)
-- `complexity` — Complexity / over-engineering (optional)
-- `api` — API contract / breaking changes (optional)
-- `cost` — Cost and operational impact (optional)
+**Step 1 — Read config files:**
+- Check `~/.claude/whetstone.config` (global defaults)
+- Check `./whetstone.config` (local overrides; wins over global)
 
-If `$ARGUMENTS` is empty, run the three defaults: `impl`, `arch`, `risk`.
+Each file is key-value, one entry per line:
+```
+enabled: true
+critics: impl, risk
+skip: arch
+severity: red, yellow
+```
+
+**Step 2 — Parse `$ARGUMENTS`** (overrides config files):
+
+| Flag | Effect |
+|------|--------|
+| `--only=impl,arch` | Run only these critics |
+| `--skip=risk` | Run all defaults except the named one(s) |
+| `--severity=red` | Report only 🔴 findings |
+| `--severity=red,yellow` | Report 🔴 and 🟡 findings |
+| `--off` | Print "whetstone disabled for this run." and stop |
+| `--help` | Print this flag table and stop |
+
+If `$ARGUMENTS` is empty and no config files exist, run all three defaults (`impl`, `arch`, `risk`) and show all severities.
+If an unrecognised flag is passed, print a warning and fall back to defaults.
+
+**Step 3 — Check enabled state:**
+If `enabled: false` is set in the resolved config, print "whetstone is disabled for this project. Run `whetstone enable` to re-enable." and stop immediately.
 
 ---
 
@@ -23,7 +41,7 @@ Before critiquing, collect available project context. Read the following if they
 
 1. `package.json` or `pyproject.toml` — dependency landscape and versions
 2. `ARCHITECTURE.md` or any `.md` files in an `ADR/` directory — existing architectural decisions
-3. `whetstone.config.md` — project-specific critic instructions and severity overrides
+3. `whetstone.config.md` — project-specific critic instructions (prose; e.g. "this project uses event sourcing — flag anything that bypasses the event log")
 4. The 5 most recently modified files (`git diff --name-only HEAD~5 HEAD` or equivalent) — what's currently in flight
 
 Use this context to ground findings: flag dependency version conflicts, note contradictions with existing ADRs, apply any project-specific instructions from `whetstone.config.md`.

@@ -45,9 +45,26 @@ if [ "$WITH_CLAUDE_MD" = true ]; then
   fi
 fi
 
+# Install whetstone CLI for global mode
+if [ "$MODE" = "global" ]; then
+  CLI_DIR="$HOME/.local/bin"
+  mkdir -p "$CLI_DIR"
+  curl -fsSL \
+    -o "$CLI_DIR/whetstone" \
+    "https://raw.githubusercontent.com/ValentinFigue/whetstone/main/bin/whetstone"
+  chmod +x "$CLI_DIR/whetstone"
+  echo "✓ whetstone CLI installed to $CLI_DIR/whetstone"
+
+  if ! echo "$PATH" | grep -q "$CLI_DIR"; then
+    echo "  Note: add $CLI_DIR to your PATH to use the 'whetstone' command"
+  fi
+fi
+
 echo ""
 if [ "$MODE" = "global" ]; then
   echo "Available in all Claude Code projects. Restart Claude Code to activate."
+  echo ""
+  echo "Run 'whetstone status' to verify your install."
 else
   echo "Available in this project. Restart Claude Code to activate."
   echo ""

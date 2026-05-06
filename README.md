@@ -4,6 +4,8 @@
 
 A Claude Code custom command that runs adversarial critics against your plan before a single line of code is written — catching implementation gaps, architectural risks, and production landmines at the moment they're cheapest to fix.
 
+No dependencies. No MCP server. No build step.
+
 ---
 
 ## Why
@@ -22,79 +24,87 @@ Each finding is rated by severity. No revisions, no rewrites — just a clear ta
 
 ## Install
 
-**Local** — available in this project only:
+**Recommended — global, available in every project:**
 
 ```bash
-mkdir -p .claude/commands
-curl -o .claude/commands/autocritic.md \
-  https://raw.githubusercontent.com/ValentinFigue/whetstone/main/.claude/commands/autocritic.md
+curl -fsSL https://raw.githubusercontent.com/ValentinFigue/whetstone/main/install.sh | bash -s global
 ```
 
-**Global** — available in every project:
+This installs the `/autocritic` command and the `whetstone` CLI to `~/.local/bin/`.
+
+**With auto-trigger** — also injects the planning discipline into `~/.claude/CLAUDE.md`:
 
 ```bash
+curl -fsSL https://raw.githubusercontent.com/ValentinFigue/whetstone/main/install.sh | bash -s global --claude-md
+```
+
+**Local only** — available in this project only:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ValentinFigue/whetstone/main/install.sh | bash
+```
+
+**Manual one-liner** (no script):
+
+```bash
+# Global
 mkdir -p ~/.claude/commands
-curl -o ~/.claude/commands/autocritic.md \
+curl -fsSL -o ~/.claude/commands/autocritic.md \
   https://raw.githubusercontent.com/ValentinFigue/whetstone/main/.claude/commands/autocritic.md
-```
 
-**Or use the install script:**
-
-```bash
-# Local (this project only)
-bash install.sh
-
-# Global (all projects)
-bash install.sh global
-
-# Local + inject auto-trigger into CLAUDE.md
-bash install.sh --claude-md
-
-# Global + inject auto-trigger into ~/.claude/CLAUDE.md
-bash install.sh global --claude-md
-```
-
-The `--claude-md` flag appends the planning discipline section to your `CLAUDE.md`, wrapped in markers so it can be cleanly removed later.
-
-**To uninstall:**
-
-```bash
-# Remove command file (local)
-bash uninstall.sh
-
-# Remove command file (global)
-bash uninstall.sh global
-
-# Remove command + CLAUDE.md section
-bash uninstall.sh --claude-md
-bash uninstall.sh global --claude-md
+# Local
+mkdir -p .claude/commands
+curl -fsSL -o .claude/commands/autocritic.md \
+  https://raw.githubusercontent.com/ValentinFigue/whetstone/main/.claude/commands/autocritic.md
 ```
 
 Restart Claude Code. The `/autocritic` command is immediately available.
 
-**No dependencies. No MCP server. No configuration required.**
+**To uninstall:**
+
+```bash
+# Global (removes CLI binary, command file, and optionally CLAUDE.md section)
+curl -fsSL https://raw.githubusercontent.com/ValentinFigue/whetstone/main/uninstall.sh | bash -s global --claude-md
+
+# Local
+curl -fsSL https://raw.githubusercontent.com/ValentinFigue/whetstone/main/uninstall.sh | bash
+```
 
 ---
 
-## Usage
+## Make it automatic
 
-In Claude Code, enter plan mode as usual, then:
+Add [templates/CLAUDE.md](templates/CLAUDE.md) to your project's `CLAUDE.md` to make the critic run automatically after every plan — no manual invocation needed. Use `--claude-md` during install (above), or manually:
 
-```
-/autocritic
-```
-
-Whetstone will look for a `PLAN.md`, `PLAN_MODE_HANDOFF.md`, or any planning files in a `plans/` directory. If none exist, it will ask you to paste the plan directly.
-
-**Focus mode** — run only specific critics:
-
-```
-/autocritic impl,risk
-/autocritic arch
-/autocritic testing,complexity
+```bash
+curl -fsSL https://raw.githubusercontent.com/ValentinFigue/whetstone/main/install.sh | bash -s --claude-md
 ```
 
-Valid critic names: `impl`, `arch`, `risk`, `testing`, `complexity`, `api`, `cost`
+With this in place, Claude Code runs `/autocritic` after presenting any plan and blocks implementation if blockers are found. Use `/autocritic --off` to skip a specific run without disabling it globally.
+
+---
+
+## Quick reference
+
+| Command | What it does |
+|---|---|
+| `/autocritic` | Full critique — all three critics, all severities |
+| `/autocritic --only=risk` | Risk pass only |
+| `/autocritic --only=impl,arch` | Skip the risk critic |
+| `/autocritic --skip=arch` | All defaults except architecture |
+| `/autocritic --severity=red` | Blockers only |
+| `/autocritic --severity=red,yellow` | Blockers and significant findings |
+| `/autocritic --off` | Skip this run (useful when auto-trigger is active) |
+| `/autocritic --help` | Print the flag reference |
+
+Optional deep-dive critics (off by default):
+
+| Command | What it does |
+|---|---|
+| `/autocritic --only=testing` | Test strategy and coverage gaps |
+| `/autocritic --only=complexity` | Over-engineering and YAGNI violations |
+| `/autocritic --only=api` | Breaking changes and versioning gaps |
+| `/autocritic --only=cost` | Cloud cost and ops surprises |
 
 ---
 
@@ -123,61 +133,85 @@ See [plans/](plans/) for a real-world example plan and its critique output.
 
 ---
 
-## Make it automatic
-
-Copy [templates/CLAUDE.md](templates/CLAUDE.md) into your project's `CLAUDE.md` to make the critic run automatically after every plan — no manual invocation needed:
-
-```bash
-curl -o CLAUDE.md \
-  https://raw.githubusercontent.com/ValentinFigue/whetstone/main/templates/CLAUDE.md
-```
-
-With this in place, Claude Code will run `/autocritic` after presenting any plan and will not proceed to implementation if blockers are found.
-
----
-
 ## The critics
 
-**Default critics** (always run unless focus mode is used):
+**Default** (always run unless overridden):
 
-| Critic | Looks for |
-|--------|-----------|
-| **Implementation** | Missing details, unhandled edge cases, untested paths, wrong assumptions about existing code, dependency conflicts |
-| **Architecture** | Coupling violations, scalability landmines, leaky abstractions, maintainability risks, missing migration strategy |
-| **Risk** | Security vulnerabilities, data loss scenarios, breaking changes, observability gaps, anything that would be a bad surprise in production |
+| Critic | Flag | Looks for |
+|--------|------|-----------|
+| **Implementation** | `impl` | Missing details, unhandled edge cases, untested paths, wrong assumptions, dependency conflicts |
+| **Architecture** | `arch` | Coupling violations, scalability landmines, leaky abstractions, maintainability risks, missing migration strategy |
+| **Risk** | `risk` | Security vulnerabilities, data loss scenarios, breaking changes, observability gaps, 2am surprises |
 
-**Optional critics** (activated via `$ARGUMENTS`):
+**Optional** (activated via `--only=` or `--skip=`):
 
-| Critic | Invocation | Looks for |
-|--------|------------|-----------|
-| **Testing** | `/autocritic testing` | Test strategy gaps, untestable designs, missing edge case coverage, CI/prod divergence |
-| **Complexity** | `/autocritic complexity` | Over-engineering, premature abstractions, YAGNI violations, simpler alternatives |
-| **API Contract** | `/autocritic api` | Breaking changes, missing versioning, implicit consumer contracts, deprecation paths |
-| **Cost / Ops** | `/autocritic cost` | Surprise cloud costs, query load, missing rate limiting, manual ops steps |
+| Critic | Flag | Looks for |
+|--------|------|-----------|
+| **Testing** | `testing` | Test strategy gaps, untestable designs, missing edge case coverage, CI/prod divergence |
+| **Complexity** | `complexity` | Over-engineering, premature abstractions, YAGNI violations, simpler alternatives |
+| **API Contract** | `api` | Breaking changes, missing versioning, implicit consumer contracts, deprecation paths |
+| **Cost / Ops** | `cost` | Surprise cloud costs, query load, missing rate limiting, manual ops steps |
 
-Each finding is rated:
+Severity ratings:
 - 🔴 **Blocker** — fix this before building
 - 🟡 **Significant** — worth addressing; will cause pain if ignored
 - 🟢 **Minor** — good to know; fix when convenient
 
 ---
 
-## Project-specific configuration
+## Configuration
 
-Create a `whetstone.config.md` file in your project root to customize critic behavior:
+Whetstone resolves settings in three layers, lowest to highest priority:
+
+**1. Global config** (`~/.claude/whetstone.config`) — your personal defaults across all projects  
+**2. Local config** (`./whetstone.config`) — project-level overrides  
+**3. Per-run flags** (`$ARGUMENTS`) — always win, override both config files
+
+Config file format (key-value, one per line):
+
+```
+enabled: true
+critics: impl, risk
+skip: arch
+severity: red, yellow
+```
+
+**Project-specific critic instructions** — create `whetstone.config.md` in your project root to give the critics prose context:
 
 ```markdown
 # whetstone config
 
-## Project context
 This project uses event sourcing. Flag any plan that bypasses the event log.
 All writes must go through the `EventStore` service — direct DB writes are a blocker.
 
-## Severity overrides
 Treat all observability gaps as 🔴 blockers (this team is on-call).
 ```
 
-Whetstone reads this file before critiquing and applies your instructions to all passes.
+Whetstone reads this before every critique and applies it across all passes.
+
+---
+
+## whetstone CLI
+
+A global install also provides a `whetstone` command for managing your setup:
+
+```bash
+whetstone status                              # install state + effective config
+
+whetstone disable local                       # silence for this project
+whetstone disable global                      # silence everywhere
+whetstone enable local                        # restore
+
+whetstone config set --only=risk              # risk-only for this project
+whetstone config set --skip=arch              # drop arch critic locally
+whetstone config set --severity=red --global  # blockers-only everywhere
+whetstone config reset local                  # wipe project overrides
+
+whetstone update                              # pull latest autocritic.md
+whetstone uninstall global --claude-md        # full removal
+```
+
+Run `whetstone help` for the full reference.
 
 ---
 
