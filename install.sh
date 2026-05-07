@@ -21,6 +21,55 @@ else
   CLAUDE_FILE="./CLAUDE.md"
 fi
 
+_json_add_hook() {
+  local file="$1" hook_path="$2"
+  if command -v python3 &>/dev/null; then
+    python3 - "$file" "$hook_path" <<'PYEOF'
+import json, sys
+f, hook_path = sys.argv[1], sys.argv[2]
+with open(f) as fh: s = json.load(fh)
+hooks = s.setdefault("hooks", {})
+pre = hooks.setdefault("PreToolUse", [])
+exists = any(
+    isinstance(e, dict) and
+    any("enforce-whetstone" in str(h.get("command", "")) for h in e.get("hooks", []))
+    for e in pre
+)
+if not exists:
+    pre.append({
+        "matcher": "Bash|Write|Edit|MultiEdit",
+        "hooks": [{"type": "command", "command": hook_path}]
+    })
+print(json.dumps(s, indent=2))
+PYEOF
+  elif command -v node &>/dev/null; then
+    node - "$file" "$hook_path" <<'JSEOF'
+const f = process.argv[2], hookPath = process.argv[3];
+const s = JSON.parse(require("fs").readFileSync(f, "utf8"));
+s.hooks = s.hooks || {};
+s.hooks.PreToolUse = s.hooks.PreToolUse || [];
+const exists = s.hooks.PreToolUse.some(e =>
+  e.hooks && e.hooks.some(h => h.command && h.command.includes("enforce-whetstone"))
+);
+if (!exists) {
+  s.hooks.PreToolUse.push({
+    matcher: "Bash|Write|Edit|MultiEdit",
+    hooks: [{ type: "command", command: hookPath }]
+  });
+}
+process.stdout.write(JSON.stringify(s, null, 2) + "\n");
+JSEOF
+  elif command -v jq &>/dev/null; then
+    jq --arg hp "$hook_path" '
+      .hooks.PreToolUse = (
+        [(.hooks.PreToolUse // [])[] | select(.hooks[]?.command | strings | contains("enforce-whetstone") | not)] +
+        [{"matcher":"Bash|Write|Edit|MultiEdit","hooks":[{"type":"command","command":$hp}]}]
+      )' "$file"
+  else
+    return 1
+  fi
+}
+
 _json_add_perms() {
   local file="$1"
   if command -v python3 &>/dev/null; then
@@ -67,6 +116,28 @@ elif _json_add_perms "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" && mv "$SETTINGS_FI
 else
   echo "  Could not update $SETTINGS_FILE automatically (install python3, node, or jq)."
   echo "  Add \"Read\" and \"Write\" to permissions.allow manually."
+fi
+
+# Install enforce-whetstone.sh hook
+HOOKS_DIR="$SETTINGS_DIR/hooks"
+if [ "$MODE" = "global" ]; then
+  HOOK_PATH="$HOME/.claude/hooks/enforce-whetstone.sh"
+else
+  HOOK_PATH=".claude/hooks/enforce-whetstone.sh"
+fi
+mkdir -p "$HOOKS_DIR"
+curl -fsSL \
+  -o "$HOOKS_DIR/enforce-whetstone.sh" \
+  "https://raw.githubusercontent.com/ValentinFigue/whetstone/main/hooks/enforce-whetstone.sh"
+chmod +x "$HOOKS_DIR/enforce-whetstone.sh"
+echo "✓ enforce-whetstone.sh installed to $HOOKS_DIR"
+
+# Register hook in settings.json
+if _json_add_hook "$SETTINGS_FILE" "$HOOK_PATH" > "$SETTINGS_FILE.tmp" && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"; then
+  echo "✓ PreToolUse hook registered in $SETTINGS_FILE"
+else
+  echo "  Could not register hook in $SETTINGS_FILE automatically (install python3, node, or jq)."
+  echo "  Add enforce-whetstone.sh to hooks.PreToolUse manually."
 fi
 
 # Optionally inject planning discipline into CLAUDE.md

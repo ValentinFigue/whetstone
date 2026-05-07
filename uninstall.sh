@@ -21,6 +21,39 @@ else
   CLAUDE_FILE="./CLAUDE.md"
 fi
 
+_json_remove_hook() {
+  local file="$1"
+  if command -v python3 &>/dev/null; then
+    python3 - "$file" <<'PYEOF'
+import json, sys
+f = sys.argv[1]
+with open(f) as fh: s = json.load(fh)
+pre = s.get("hooks", {}).get("PreToolUse", [])
+s.setdefault("hooks", {})["PreToolUse"] = [
+    e for e in pre
+    if not (isinstance(e, dict) and
+            any("enforce-whetstone" in str(h.get("command", "")) for h in e.get("hooks", [])))
+]
+print(json.dumps(s, indent=2))
+PYEOF
+  elif command -v node &>/dev/null; then
+    node - "$file" <<'JSEOF'
+const f = process.argv[2];
+const s = JSON.parse(require("fs").readFileSync(f, "utf8"));
+if (s.hooks && s.hooks.PreToolUse) {
+  s.hooks.PreToolUse = s.hooks.PreToolUse.filter(e =>
+    !(e.hooks && e.hooks.some(h => h.command && h.command.includes("enforce-whetstone")))
+  );
+}
+process.stdout.write(JSON.stringify(s, null, 2) + "\n");
+JSEOF
+  elif command -v jq &>/dev/null; then
+    jq '.hooks.PreToolUse = [(.hooks.PreToolUse // [])[] | select(.hooks[]?.command | strings | contains("enforce-whetstone") | not)]' "$file"
+  else
+    return 1
+  fi
+}
+
 _json_remove_perms() {
   local file="$1"
   if command -v python3 &>/dev/null; then
@@ -48,7 +81,30 @@ JSEOF
   fi
 }
 
+HOOKS_DIR="$SETTINGS_DIR/hooks"
+SETTINGS_FILE="$SETTINGS_DIR/settings.json"
 REMOVED=0
+
+# Remove hook file
+HOOK_FILE="$HOOKS_DIR/enforce-whetstone.sh"
+if [ -f "$HOOK_FILE" ]; then
+  rm "$HOOK_FILE"
+  echo "✓ Removed $HOOK_FILE"
+  REMOVED=$((REMOVED + 1))
+else
+  echo "  $HOOK_FILE not found — skipped"
+fi
+
+# Remove hook registration from settings.json
+if [ ! -f "$SETTINGS_FILE" ]; then
+  echo "  $SETTINGS_FILE not found — skipped hook deregistration"
+elif _json_remove_hook "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"; then
+  echo "✓ PreToolUse hook removed from $SETTINGS_FILE"
+  REMOVED=$((REMOVED + 1))
+else
+  echo "  Could not update $SETTINGS_FILE automatically."
+  echo "  Remove the enforce-whetstone entry from hooks.PreToolUse manually."
+fi
 
 # Remove whetstone CLI binary (global only)
 if [ "$MODE" = "global" ]; then
@@ -73,7 +129,6 @@ else
 fi
 
 # Remove Read + Write permissions from settings.json
-SETTINGS_FILE="$SETTINGS_DIR/settings.json"
 if [ ! -f "$SETTINGS_FILE" ]; then
   echo "  $SETTINGS_FILE not found — skipped"
 elif _json_remove_perms "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"; then

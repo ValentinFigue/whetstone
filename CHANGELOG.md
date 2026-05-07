@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.5] - 2026-05-07
+
+### Added
+
+- `hooks/enforce-whetstone.sh` — new PreToolUse hook with two non-blocking gates:
+  - **Gate 1 (Bash):** nudges on `git push`/`git commit` when the newest plan file in `.claude/plans/` is newer than `CRITIQUE.md` (stale critique) or when a plan exists with no critique at all
+  - **Gate 2 (Write/Edit/MultiEdit):** nudges once per project on the first source-file write (`.py/.ts/.tsx/.js/.jsx/.mjs`) when no `CRITIQUE.md` exists; uses a `.whetstone-nudged` sentinel to fire only once
+  - Bypass: `# whetstone:skip` or `# suite:skip` in the command silences both gates
+- `install.sh`: downloads and installs `enforce-whetstone.sh`; registers it as a PreToolUse hook in `settings.json` via new `_json_add_hook()` function (Python/Node/jq fallback, deduplication-safe)
+- `uninstall.sh`: removes hook file and deregisters from `settings.json` via new `_json_remove_hook()` function
+
+### Changed
+
+- `templates/CLAUDE.md`: replaced thin auto-trigger block with full planning discipline including explicit trigger/skip criteria, cross-suite integration rules (temper Design findings, bonsai dry-run surprises), plan file conventions, severity handoff table, and skip syntax documentation
+
+---
+
+## [0.1.4] - 2026-05-07
+
+### Added
+
+- `README.md`: "Bypassing whetstone" section documenting all three skip mechanisms (`/autocritic --off`, `# whetstone:skip`, `# suite:skip`) with scope and use-case table
+- `README.md`: Expanded "Works well with" section into a full suite table covering temper, cairn, bonsai, and whetstone
+- `templates/CLAUDE.md`: "Skipping the auto-trigger" section documenting `# whetstone:skip` and `# suite:skip` plan-heading markers
+
+---
+
 ## [0.1.3] - 2026-05-06
 
 ### Changed

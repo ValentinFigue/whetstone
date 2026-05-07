@@ -217,9 +217,28 @@ Run `whetstone help` for the full reference.
 
 ---
 
+## Bypassing whetstone
+
+Three ways to skip the critic, in order of scope:
+
+| Method | Scope | When to use |
+|--------|-------|-------------|
+| `/autocritic --off` | This run only | Quick iteration on a plan you're actively editing |
+| `# whetstone:skip` in the plan heading | This plan only (auto-trigger) | Spike or throwaway plan that doesn't need full critique |
+| `# suite:skip` in the plan heading | All suite hooks for this plan | Coordinated skip across temper, cairn, and whetstone |
+
+`--off` affects only the current `/autocritic` invocation. The skip markers are read by the auto-trigger in `CLAUDE.md` — they have no effect when running `/autocritic` directly.
+
+---
+
 ## Works well with
 
-[**bonsai**](https://github.com/ValentinFigue/bonsai) — AST-powered refactoring tools for Claude Code. Whetstone sharpens the plan; bonsai executes the cuts with precision.
+| Plugin | What it does |
+|--------|-------------|
+| [**temper**](https://github.com/ValentinFigue/temper) | Reviews the diff before every commit |
+| [**cairn**](https://github.com/ValentinFigue/cairn) | Narrates commits with structured changelogs |
+| [**bonsai**](https://github.com/ValentinFigue/bonsai) | Finds dead Python code and suggests renames |
+| [**whetstone**](https://github.com/ValentinFigue/whetstone) | ← you are here — sharpens plans before code is written |
 
 ---
 
