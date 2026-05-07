@@ -3,11 +3,13 @@ set -e
 
 MODE="local"
 WITH_CLAUDE_MD=false
+WITH_HOOK=true
 
 for arg in "$@"; do
   case "$arg" in
     global) MODE="global" ;;
     --claude-md) WITH_CLAUDE_MD=true ;;
+    --no-hook) WITH_HOOK=false ;;
   esac
 done
 
@@ -133,18 +135,24 @@ chmod +x "$HOOKS_DIR/enforce-whetstone.sh"
 echo "✓ enforce-whetstone.sh installed to $HOOKS_DIR"
 
 # Register hook in settings.json
-if _json_add_hook "$SETTINGS_FILE" "$HOOK_PATH" > "$SETTINGS_FILE.tmp" && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"; then
-  echo "✓ PreToolUse hook registered in $SETTINGS_FILE"
+if [ "$WITH_HOOK" = true ]; then
+  if _json_add_hook "$SETTINGS_FILE" "$HOOK_PATH" > "$SETTINGS_FILE.tmp" && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"; then
+    echo "✓ PreToolUse hook registered in $SETTINGS_FILE"
+  else
+    echo "  Could not register hook in $SETTINGS_FILE automatically (install python3, node, or jq)."
+    echo "  Add enforce-whetstone.sh to hooks.PreToolUse manually."
+  fi
 else
-  echo "  Could not register hook in $SETTINGS_FILE automatically (install python3, node, or jq)."
-  echo "  Add enforce-whetstone.sh to hooks.PreToolUse manually."
+  echo "  Hook registration skipped (--no-hook)"
 fi
 
 # Optionally inject planning discipline into CLAUDE.md
 if [ "$WITH_CLAUDE_MD" = true ]; then
   MARKER="<!-- whetstone:start -->"
 
-  if [ -f "$CLAUDE_FILE" ] && grep -q "$MARKER" "$CLAUDE_FILE"; then
+  if [ -f "$CLAUDE_FILE" ] && grep -q "<!-- aether:start -->" "$CLAUDE_FILE"; then
+    echo "✓ $CLAUDE_FILE aether block present — whetstone section already covered (skipped)"
+  elif [ -f "$CLAUDE_FILE" ] && grep -q "$MARKER" "$CLAUDE_FILE"; then
     echo "✓ $CLAUDE_FILE already contains whetstone section — skipped"
   else
     TEMPLATE=$(curl -fsSL \
@@ -186,4 +194,5 @@ else
   echo "  Global install:             bash install.sh global"
   echo "  With auto-trigger:          bash install.sh --claude-md"
   echo "  Global + auto-trigger:      bash install.sh global --claude-md"
+  echo "  Skip hook (aether users):   bash install.sh --no-hook"
 fi

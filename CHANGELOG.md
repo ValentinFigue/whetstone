@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.6] - 2026-05-07
+
+### Added
+
+- `install.sh --no-hook`: skip hook registration (useful when aether manages hooks centrally)
+- `install.sh --claude-md`: guard against aether double-injection — if `<!-- aether:start -->` is present in the target CLAUDE.md, the whetstone block is skipped rather than appended a second time
+
+---
+
 ## [0.1.5] - 2026-05-07
 
 ### Added
